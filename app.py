@@ -8,6 +8,7 @@ Features:
 - Asset metadata tracking
 - Usage limits and quotas
 """
+import os
 import uvicorn
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -78,7 +79,7 @@ logger.info("=" * 80)
 logger.info("CONFIGURATION VALIDATION")
 logger.info("=" * 80)
 logger.info(f"HOST: {Config.HOST}")
-logger.info(f"PORT: {Config.PORT}")
+logger.info(f"PORT: {Config.PORT} (from environment: {os.getenv('PORT', 'not set, using default')})")
 logger.info(f"SECRET_KEY: {'SET (length: ' + str(len(Config.SECRET_KEY)) + ')' if Config.SECRET_KEY else 'NOT SET ❌'}")
 logger.info(f"GEMINI_API_KEY: {'SET (length: ' + str(len(Config.GEMINI_API_KEY)) + ')' if Config.GEMINI_API_KEY else 'NOT SET ❌'}")
 logger.info(f"GEMINI_MODEL: {Config.GEMINI_MODEL}")
@@ -94,9 +95,23 @@ try:
     logger.info("✓ Configuration validated successfully")
 except ValueError as e:
     logger.error(f"❌ Configuration validation FAILED: {e}")
-    logger.error("Please set required environment variables in .env file")
-    print(f"Configuration error: {e}")
-    print("Please set required environment variables in .env file")
+    logger.error("Please set required environment variables")
+    logger.error("For Railway: Set SECRET_KEY and GEMINI_API_KEY in the Variables tab")
+    print("=" * 80)
+    print(f"❌ CONFIGURATION ERROR: {e}")
+    print("=" * 80)
+    print("Required environment variables:")
+    print("  - SECRET_KEY (for JWT authentication)")
+    print("  - GEMINI_API_KEY (for Gemini API access)")
+    print("=" * 80)
+    print("For Railway deployment:")
+    print("  1. Go to your project settings")
+    print("  2. Click 'Variables' tab")
+    print("  3. Add SECRET_KEY and GEMINI_API_KEY")
+    print("  4. Redeploy the service")
+    print("=" * 80)
+    import sys
+    sys.exit(1)
 
 
 @asynccontextmanager
@@ -114,7 +129,6 @@ async def lifespan(app: FastAPI):
         logger.info(f"Server: {Config.HOST}:{Config.PORT}")
         
         # Check directories
-        import os
         logger.info("Checking required directories...")
         for dir_name, dir_path in [
             ("Assets", Config.ASSETS_DIR),
@@ -308,7 +322,6 @@ logger.info("✓ CORS middleware configured")
 # Serve static assets
 logger.info("Setting up static file serving...")
 try:
-    import os
     assets_dir = "assets"
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
@@ -376,7 +389,6 @@ logger.info("=" * 80)
 def health():
     """Health check endpoint with system status."""
     try:
-        import os
         import sys
         
         status = {
