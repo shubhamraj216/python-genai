@@ -172,17 +172,20 @@ class InMemoryMongo:
         try:
             db_folder = os.path.join("assets", "db")
             os.makedirs(db_folder, exist_ok=True)
+            logger.info(f"  Database folder: {db_folder}")
         except Exception as e:
-            logger.warning(f"Failed to create database directory: {e}")
+            logger.error(f"  ❌ Failed to create database directory: {e}")
             return
 
         try:
             file_list = os.listdir(db_folder)
+            logger.info(f"  Found {len(file_list)} files in database directory")
         except Exception as e:
-            logger.warning(f"Failed to list database directory: {e}")
+            logger.error(f"  ❌ Failed to list database directory: {e}")
             return
 
         # look for any json file in the folder and attempt to load it
+        total_loaded = 0
         for fname in file_list:
             if not fname.endswith(".json"):
                 continue
@@ -212,26 +215,45 @@ class InMemoryMongo:
                                     try:
                                         self.insert_one(coll_name, dict(d))
                                         loaded_count += 1
+                                        total_loaded += 1
                                     except Exception as insert_error:
                                         logger.warning(f"Failed to insert document from {fname}: {insert_error}")
-                            logger.info(f"Loaded {loaded_count} documents from {fname}")
+                            logger.info(f"  ✓ Loaded {loaded_count} documents from {fname} ({coll_name})")
                         else:
-                            logger.warning(f"Invalid data format in {fname}: expected list of documents")
+                            logger.warning(f"  ⚠️  Invalid data format in {fname}: expected list of documents")
                 else:
-                    logger.warning(f"Invalid JSON structure in {fname}: expected dictionary")
+                    logger.warning(f"  ⚠️  Invalid JSON structure in {fname}: expected dictionary")
             except (IOError, OSError) as e:
                 # File I/O errors - log warning but continue loading other files
-                logger.warning(f"Failed to read file {full}: {e}")
+                logger.warning(f"  ⚠️  Failed to read file {full}: {e}")
             except json.JSONDecodeError as e:
                 # JSON parsing errors - log warning but continue
-                logger.warning(f"Failed to parse JSON from {full}: {e}")
+                logger.warning(f"  ⚠️  Failed to parse JSON from {full}: {e}")
             except Exception as e:
                 # Catch-all for unexpected errors
-                logger.warning(f"Unexpected error loading {full}: {e}")
+                logger.warning(f"  ⚠️  Unexpected error loading {full}: {e}")
+        
+        logger.info(f"  Total documents loaded: {total_loaded}")
 
 
 # instantiate DB and load existing files (if desired)
+logger.info("=" * 80)
+logger.info("DATABASE INITIALIZATION")
+logger.info("=" * 80)
+logger.info(f"Persistence enabled: {Config.PERSIST}")
+
 db = InMemoryMongo()
+logger.info("✓ InMemoryMongo database created")
+
 if Config.PERSIST:
-    db.load_from_files()
+    logger.info("Loading persisted data from files...")
+    try:
+        db.load_from_files()
+        logger.info("✓ Database loaded successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to load database: {e}", exc_info=True)
+else:
+    logger.info("Persistence disabled - using in-memory only storage")
+
+logger.info("=" * 80)
 

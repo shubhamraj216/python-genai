@@ -111,11 +111,20 @@ class Config:
 
 
 # Initialize directories
+print("=" * 80)
+print("INITIALIZING DIRECTORIES")
+print("=" * 80)
 try:
     os.makedirs(Config.ASSETS_DIR, exist_ok=True)
+    print(f"✓ Assets directory: {Config.ASSETS_DIR}")
     os.makedirs(Config.VIDEOS_DIR, exist_ok=True)
+    print(f"✓ Videos directory: {Config.VIDEOS_DIR}")
     os.makedirs(Config.AVATARS_DIR, exist_ok=True)
+    print(f"✓ Avatars directory: {Config.AVATARS_DIR}")
+    print("=" * 80)
 except Exception as e:
-    print(f"Warning: Failed to create directories: {e}")
+    print("=" * 80)
+    print(f"❌ CRITICAL: Failed to create directories: {e}")
     print("Some features may not work correctly without these directories.")
+    print("=" * 80)
 
