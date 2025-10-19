@@ -147,7 +147,7 @@ def generate_video(
         try:
             from avatars.services import load_avatar_as_base64
             avatar_image = load_avatar_as_base64(avatar_id, owner_id)
-            logger.info(f"Using avatar {avatar_id} for video generation")
+            logger.info(f"Successfully loaded avatar {avatar_id} for video generation - mime_type: {avatar_image.get('mime_type')}, data length: {len(avatar_image.get('data', ''))} chars")
             
             # Add avatar to appropriate mode-specific parameters
             # For references_to_video mode, add to reference_images
@@ -178,6 +178,7 @@ def generate_video(
                 else:
                     prompt = "Use this avatar consistently in your generations."
                 avatar_instruction_added = True
+                logger.info(f"Mode after conversion: {mode}, reference_images count: {len(reference_images) if reference_images else 0}")
             elif mode == GenerationMode.FRAMES_TO_VIDEO.value:
                 # For frames-to-video, if no start_frame provided, use avatar as start_frame
                 if not start_frame:
@@ -194,8 +195,9 @@ def generate_video(
             if avatar_instruction_added:
                 logger.info("Added avatar consistency instruction to prompt")
         except Exception as e:
-            logger.warning(f"Failed to load avatar {avatar_id}: {e}")
+            logger.error(f"Failed to load avatar {avatar_id}: {e}", exc_info=True)
             # Continue without avatar (optional parameter)
+            raise ValueError(f"Failed to load avatar {avatar_id}: {str(e)}")
     
     # If TEXT_TO_VIDEO mode has reference_images (but no avatar), also convert to REFERENCES_TO_VIDEO
     # This ensures reference images are actually passed to the API
@@ -286,6 +288,26 @@ def generate_video(
 
     logger.info("Submitting video generation request to Gemini...")
     logger.debug(f"Payload config: model={model}, resolution={resolution}, aspect_ratio={aspect_ratio}, mode={mode}")
+    
+    # Log detailed payload structure (truncate base64 data for readability)
+    import json
+    def truncate_payload_for_logging(obj, max_str_len=100):
+        """Recursively truncate long strings in payload for logging."""
+        if isinstance(obj, dict):
+            return {k: truncate_payload_for_logging(v, max_str_len) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [truncate_payload_for_logging(item, max_str_len) for item in obj]
+        elif isinstance(obj, bytes):
+            return f"<bytes: {len(obj)} bytes>"
+        elif isinstance(obj, str) and len(obj) > max_str_len:
+            return f"{obj[:max_str_len]}... (total: {len(obj)} chars)"
+        else:
+            return obj
+    
+    truncated_payload = truncate_payload_for_logging(generate_video_payload)
+    logger.info(f"=== FULL PAYLOAD TO GOOGLE API ===")
+    logger.info(f"{json.dumps(truncated_payload, indent=2, default=str)}")
+    logger.info(f"=== END PAYLOAD ===")
 
     # Start video generation
     try:
@@ -297,16 +319,18 @@ def generate_video(
         
         # Handle specific API validation errors with helpful messages
         if "INVALID_ARGUMENT" in error_msg or "400" in error_msg:
+            print(error_msg)
+            logger.error(f"Error message: {error_msg}")
             if "referenceImages" in error_msg:
                 raise ValueError(
                     "Reference images are not supported by this model. "
-                    "Please use a Veo 3.1 model ('veo-3.1-fast-generate-preview' or 'veo-3.1-generate-preview'), "
+                    "Please use a Veo 3.1 Standard model ('veo-3.1-generate-preview'), "
                     "or switch to text-to-video mode without reference images."
                 )
             elif "lastFrame" in error_msg or "frame" in error_msg.lower():
                 raise ValueError(
                     "Start/end frames are not supported by this model. "
-                    "Please use a Veo 3.1 model ('veo-3.1-fast-generate-preview' or 'veo-3.1-generate-preview'), "
+                    "Please use a Veo 3.1 Standard model ('veo-3.1-generate-preview'), "
                     "or switch to text-to-video mode without frames."
                 )
             elif "Resolution of the input video must be 720p" in error_msg:
