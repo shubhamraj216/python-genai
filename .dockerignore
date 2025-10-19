@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/*.log
+*.log
+
+# Test files
+test_*.py
+*_test.py
+
+# Documentation (optional - include if you want it in the image)
+*.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large generated files (if not needed in image)
+# Uncomment if you want to exclude existing generated assets
+# assets/generated/*.png
+# assets/generated/*.mp4
+
