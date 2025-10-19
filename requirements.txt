@@ -1,7 +1,10 @@
 fastapi
 uvicorn[standard]
 pydantic
+bcrypt==4.0.1
 passlib[bcrypt]
 python-jose
 Pillow
 google-genai
+python-dotenv
+python-multipart
