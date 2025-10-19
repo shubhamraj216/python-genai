@@ -79,7 +79,7 @@ def create_user(email: str, password: str, is_guest: bool = False, guest_quota: 
 
         # create default personas for the new user
         try:
-            from image.personas import DEFAULT_PERSONAS, create_persona
+            from common.personas import DEFAULT_PERSONAS, create_persona
             for i, tmpl in enumerate(DEFAULT_PERSONAS):
                 try:
                     create_persona(
