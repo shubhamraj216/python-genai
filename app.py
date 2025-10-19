@@ -90,6 +90,15 @@ app = FastAPI(
 )
 
 
+# CORS middleware - MUST be added FIRST so it runs on all responses (including error responses and OPTIONS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -112,7 +121,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Request logging middleware
+# Request logging middleware - runs AFTER CORS middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all HTTP requests with timing and request/response details."""
@@ -211,15 +220,6 @@ async def log_requests(request: Request, call_next):
         
         # Re-raise to be handled by global exception handler
         raise
-
-
-# CORS middleware - restrict in production
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 logger.info("CORS middleware configured")
 
